@@ -2,10 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'package:wakelock/wakelock.dart'; // Import Wakelock package
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
   SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersive);
+
+  // Bật Wakelock để giữ màn hình luôn sáng
+  Wakelock.enable();
 
   runApp(MyApp());
 }

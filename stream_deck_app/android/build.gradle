@@ -16,3 +16,14 @@ subprojects {
 tasks.register("clean", Delete) {
     delete rootProject.buildDir
 }
+
+buildscript {
+    repositories {
+        google()
+        jcenter()
+    }
+    dependencies {
+        classpath 'com.android.tools.build:gradle:4.2.0' // Ensure this version is compatible with your Flutter version
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:1.5.20" // Update to a compatible version
+    }
+}
