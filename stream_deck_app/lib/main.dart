@@ -1,12 +1,12 @@
 import 'dart:ffi';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:wakelock/wakelock.dart'; // Import Wakelock package
+import 'package:shared_preferences/shared_preferences.dart'; // Import SharedPreferences
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersive);
 
@@ -38,9 +38,31 @@ class MyHomePage extends StatefulWidget {
 class _MyHomePageState extends State<MyHomePage> {
   double _volume = 0.5;
   bool _mute = false;
+  String baseUrl = 'http://192.168.0.107:5000';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadBaseUrl();
+  }
+
+  Future<void> _loadBaseUrl() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    setState(() {
+      baseUrl = prefs.getString('baseUrl') ?? 'http://192.168.0.107:5000';
+    });
+  }
+
+  Future<void> _setBaseUrl(String url) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.setString('baseUrl', url);
+    setState(() {
+      baseUrl = url;
+    });
+  }
 
   Future<void> _setVolume(double volume) async {
-    final url = Uri.parse('http://192.168.0.107:5000/set_volume');
+    final url = Uri.parse('$baseUrl/set_volume');
     final response = await http.post(
       url,
       headers: {'Content-Type': 'application/json'},
@@ -55,7 +77,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
   Future<void> _shutdown() async {
     final url = Uri.parse(
-        'http://192.168.0.107:5000/shutdown'); // Assuming '/shutdown' endpoint exists on your server
+        '$baseUrl/shutdown'); // Assuming '/shutdown' endpoint exists on your server
     final response = await http.post(
       url,
       headers: {'Content-Type': 'application/json'},
@@ -69,7 +91,7 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   Future<void> _openFacebook() async {
-    final url = Uri.parse('http://192.168.0.107:5000/open_facebook');
+    final url = Uri.parse('$baseUrl/open_facebook');
     final response = await http.post(
       url,
       headers: {'Content-Type': 'application/json'},
@@ -85,7 +107,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
   Future<void> _restart() async {
     final url = Uri.parse(
-        'http://192.168.0.107:5000/restart'); // Assuming '/restart' endpoint exists on your server
+        '$baseUrl/restart'); // Assuming '/restart' endpoint exists on your server
     final response = await http.post(
       url,
       headers: {'Content-Type': 'application/json'},
@@ -99,7 +121,7 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   Future<void> _openYoutube() async {
-    final url = Uri.parse('http://192.168.0.107:5000/open_youtube');
+    final url = Uri.parse('$baseUrl/open_youtube');
     final response = await http.post(
       url,
       headers: {'Content-Type': 'application/json'},
@@ -146,6 +168,61 @@ class _MyHomePageState extends State<MyHomePage> {
     });
   }
 
+  Future<void> _openCustomweb() async {
+    final url = Uri.parse('$baseUrl/open_customweb');
+    final response = await http.post(
+      url,
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({'action': 'open_customweb'}),
+    );
+    if (response.statusCode == 200) {
+      print('Opening Custom Web');
+    } else {
+      print('Failed to open Custom Web');
+    }
+  }
+
+  Future<void> _showSettingsDialog() async {
+    TextEditingController _controller = TextEditingController(text: baseUrl);
+
+    return showDialog<void>(
+      context: context,
+      barrierDismissible: false, // user must tap button to close the dialog
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Settings'),
+          content: SingleChildScrollView(
+            child: ListBody(
+              children: <Widget>[
+                TextField(
+                  controller: _controller,
+                  decoration: InputDecoration(
+                    labelText: 'Base URL',
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: Text('Cancel'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+            TextButton(
+              child: Text('Save'),
+              onPressed: () {
+                _setBaseUrl(_controller.text);
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   Widget buildSquare(int index) {
     return Material(
       color: Colors.transparent,
@@ -161,11 +238,11 @@ class _MyHomePageState extends State<MyHomePage> {
             _openFacebook();
           } else if (index == 4) {
             _openYoutube();
+          } else if (index == 7) {
+            _openCustomweb();
           } else if (index == 8) {
-            // Assuming index 8 is reserved for restart button
             _restart();
           } else if (index == 9) {
-            // Assuming index 9 is reserved for shutdown button
             _shutdown();
           }
         },
@@ -213,19 +290,25 @@ class _MyHomePageState extends State<MyHomePage> {
                                     color: Colors.white,
                                     size: 130,
                                   )
-                                : index == 8
+                            : index == 7
+                                ? Icon(
+                                    Icons.open_in_browser,
+                                    color: Colors.white,
+                                    size: 130,
+                                  )
+                            : index == 8
+                                ? Icon(
+                                    Icons.restart_alt_sharp,
+                                    color: Colors.white,
+                                    size: 130,
+                                  )
+                                : index == 9
                                     ? Icon(
-                                        Icons.restart_alt_sharp,
+                                        Icons.power_settings_new,
                                         color: Colors.white,
                                         size: 130,
                                       )
-                                    : index == 9
-                                        ? Icon(
-                                            Icons.power_settings_new,
-                                            color: Colors.white,
-                                            size: 130,
-                                          )
-                                        : null,
+                                    : null,
           ),
         ),
       ),
@@ -235,32 +318,45 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Colors.pink, Colors.cyan],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-        ),
-        child: Center(
-          child: Column(
-            children: [
-              SizedBox(height: 35),
-              Expanded(
-                child: GridView.builder(
-                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 5,
-                  ),
-                  itemCount: 10,
-                  itemBuilder: (context, index) {
-                    return buildSquare(index);
-                  },
-                ),
+      body: Stack(
+        children: [
+          Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Colors.pink, Colors.cyan],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
               ),
-            ],
+            ),
+            child: Center(
+              child: Column(
+                children: [
+                  SizedBox(height: 35),
+                  Expanded(
+                    child: GridView.builder(
+                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 5,
+                      ),
+                      itemCount: 10,
+                      itemBuilder: (context, index) {
+                        return buildSquare(index);
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
-        ),
+          Positioned(
+            right: 16,
+            child: IconButton(
+              icon: Icon(Icons.settings, color: Colors.white),
+              onPressed: () {
+                _showSettingsDialog();
+              },
+            ),
+          ),
+        ],
       ),
     );
   }

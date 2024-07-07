@@ -6,6 +6,8 @@ import pythoncom
 import os
 
 app = Flask(__name__)
+global host
+host ='192.168.0.108'
 
 def set_volume(level):
     pythoncom.CoInitialize()
@@ -30,7 +32,7 @@ def handle_set_volume():
 
 @app.route('/shutdown', methods=['POST'])
 def handle_shutdown():
-    shutdown_system()
+    os.system("shutdown -s -t 5")
     return 'Shutdown initiated', 200
 
 @app.route('/open_facebook', methods=['POST'])
@@ -55,7 +57,11 @@ def handle_openYoutube():
 
 @app.route('/restart', methods=['POST'])
 def handle_restart():
-    os.system("shutdown /r /t 1")
+    os.system("shutdown /r /t 5")
 
+@app.route('/open_customweb', methods=['POST'])
+def handle_openCustomWeb():
+    custom_web = "https://custom.com"
+    os.system("start "+custom_web)
 if __name__ == '__main__':
-    app.run(host='192.168.0.107', port=5000)
+    app.run(host, port=5000)
